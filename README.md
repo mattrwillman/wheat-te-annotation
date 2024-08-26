@@ -12,7 +12,7 @@ source activate te_env
 conda install snakemake seqkit repeatmodeler repeatmasker 
 ```
 
-2. Clone the repository and edit config.yaml and snakemake_batch.sh files to fit your job.
+2. Clone the repository and edit config/config.yaml to fit your job.
 
 3. Run [snakemake](https://snakemake.readthedocs.io/en/stable/).
 

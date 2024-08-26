@@ -4,7 +4,7 @@ This pipeline uses repeatmasker, repeatmodeler, and the TREP database  (v. 2019,
 
 # Workflow
 
-1. Install software into a conda environment
+1. Install software into a conda environment.
 
 ```
 conda create --name te_env
@@ -14,7 +14,7 @@ conda install snakemake seqkit repeatmodeler repeatmasker
 
 2. Clone the repository and edit config.yaml and snakemake_batch.sh files to fit your job.
 
-3. Run snakemake
+3. Run [snakemake](https://snakemake.readthedocs.io/en/stable/).
 
 Use batch script to submit job to SLURM. See example script below.
 
@@ -25,7 +25,7 @@ sbatch snakemake.slurm
 Or, run snakemake locally.
 
 ```
-snakemake --cores 'all' --configfile config/config.yml
+snakemake [--cores N] --configfile config/config.yml
 ```
 
 ### SLURM file
@@ -35,7 +35,7 @@ Example SLURM file named "snakemake.slurm":
 ```
 #!/bin/bash
 #SBATCH --job-name="te_annotation"		#name of the job submitted
-#SBATCH -p atlas			#name of the queue you are submitting job to
+#SBATCH -p nodeName			#enter name of the queue you are submitting job to
 #SBATCH -A project			#enter your project neame
 #SBATCH -N 1				#number of nodes in this job
 #SBATCH -n 48				#number of cores/tasks in this job

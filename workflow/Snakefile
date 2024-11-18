@@ -48,7 +48,7 @@ rule mask_1_trep:
         )
     params:
         outdir = "results/repeatmasker/1_TREP_out", 
-        options = "-gff -e ncbi -small"
+        options = "-gff -e ncbi -xsmall"
     log:
         "logs/repeatmasker/1_trepmask_{subgenome}.log"
     threads: 12
@@ -69,7 +69,7 @@ rule mask_2_rmodeled:
         )
     params:
         outdir = "results/repeatmasker/2_RepeatModeler_out", 
-        options = "-gff -e ncbi -nolow -small"
+        options = "-gff -e ncbi -nolow -xsmall"
     log:
         "logs/repeatmasker/2_rmodelermask_{subgenome}.log"
     threads: 12

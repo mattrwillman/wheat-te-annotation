@@ -13,8 +13,10 @@ rule subset_subgenomes:
         ASSEMBLY_FASTA
     output:
         "results/subgenomes/{subgenome}.fa"
+    log:
+        "logs/subset_{subgenome}.log"
     shell:
-        "seqkit grep -rp '{wildcards.subgenome}' {input} > {output}"
+        "seqkit grep -rp '{wildcards.subgenome}' {input} > {output} 2> {log}"
 
 rule repeat_modeler:
     input:

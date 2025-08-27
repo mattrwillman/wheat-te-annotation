@@ -18,81 +18,24 @@ rule subset_subgenomes:
     shell:
         "seqkit grep -rp '{wildcards.subgenome}' {input} > {output} 2> {log}"
 
-rule repeat_modeler:
+rule edta:
     input:
-        "results/subgenomes/{subgenome}.fa"
+        genome = "results/subgenomes/{subgenome}.fa", 
+        trep = TREP_FASTA
     output:
-        multiext("results/repeatmodeler/{subgenome}-families", 
-            ".fa",
-            ".stk",
-        )
+        "results/edta/{subgenome}.mod.EDTA.TElib.novel.fa"
     params:
-        db = "results/repeatmodeler/{subgenome}"
+        anno = "0"
     log:
-        "logs/repeatmodeler/{subgenome}.log"
-    threads: 12
-    resources:
-        mem_mb=96000
+        "logs/edta/{subgenome}.log"
+    threads: 24
     shell:
-        "BuildDatabase -name {params.db} {input} ; "
-        "RepeatModeler -database {params.db} -threads {threads} -LTRStruct > {log}"
+        "perl /project/gbru_wheat2/conda/edta_env/bin/EDTA.pl --genome {input.genome} --curatedlib {input.trep} --anno {params.anno} --threads {threads} 2> {log}"
 
-rule mask_1_trep:
+rule mask:
     input:
-        assembly = "results/subgenomes/{subgenome}.fa", 
-        db = TREP_FASTA
     output:
-        multiext("results/repeatmasker/1_TREP_out/{subgenome}.fa", 
-            ".masked", 
-            ".out", 
-            ".tbl",
-            ".out.gff" 
-        )
-    params:
-        outdir = "results/repeatmasker/1_TREP_out", 
-        options = "-gff -e ncbi -xsmall"
     log:
-        "logs/repeatmasker/1_trepmask_{subgenome}.log"
-    threads: 12
+    threads:
     shell:
-        "RepeatMasker -pa {threads} -dir {params.outdir} {params.options} "
-        "-lib {input.db} {input.assembly} | tee {log}"
-
-rule mask_2_rmodeled:
-    input:
-        assembly = "results/repeatmasker/1_TREP_out/{subgenome}.fa.masked", 
-        db = "results/repeatmodeler/{subgenome}-families.fa"
-    output:
-        multiext("results/repeatmasker/2_RepeatModeler_out/{subgenome}.fa.masked", 
-            ".masked", 
-            ".out", 
-            ".tbl",
-            ".out.gff" 
-        )
-    params:
-        outdir = "results/repeatmasker/2_RepeatModeler_out", 
-        options = "-gff -e ncbi -nolow -xsmall"
-    log:
-        "logs/repeatmasker/2_rmodelermask_{subgenome}.log"
-    threads: 12
-    shell:
-        "RepeatMasker -pa {threads} -dir {params.outdir} {params.options} "
-        "-lib {input.db} {input.assembly} | tee {log}"
-
-rule merge_masked_fasta:
-    input:
-        expand("results/repeatmasker/2_RepeatModeler_out/{subgenome}.fa.masked.masked", subgenome=SUBGENOMES)
-    output:
-        expand("results/{genotype}.masked.fasta", genotype = GENOTYPE)
-    shell:
-        "cat {input} > {output}"
-
-rule merge_te_gff:
-    input:
-        expand("results/repeatmasker/1_TREP_out/{subgenome}.fa.out.gff", subgenome=SUBGENOMES), 
-        expand("results/repeatmasker/2_RepeatModeler_out/{subgenome}.fa.masked.out.gff", subgenome=SUBGENOMES)
-    output:
-        expand("results/{genotype}.te.gff", genotype = GENOTYPE)
-    shell:
-        "cat {input} > {output}"
-
+        "perl /project/gbru_wheat2/conda/edta_env/bin/make_masked.pl -genome unmasked_genome.fa [options] -rmout [file] Required. The repeatmasker.out file"

@@ -1,0 +1,98 @@
+GENOTYPE = config['GENOTYPE']
+ASSEMBLY_FASTA = config['ASSEMBLY_FASTA']
+TREP_FASTA = config['TREP_FASTA']
+SUBGENOMES = config['SUBGENOMES']
+
+rule all:
+    input:
+        expand("results/{genotype}.masked.fasta", genotype = GENOTYPE), 
+        expand("results/{genotype}.te.gff", genotype = GENOTYPE)
+
+rule subset_subgenomes:
+    input:
+        ASSEMBLY_FASTA
+    output:
+        "results/subgenomes/{subgenome}.fa"
+    log:
+        "logs/subset_{subgenome}.log"
+    shell:
+        "seqkit grep -rp '{wildcards.subgenome}' {input} > {output} 2> {log}"
+
+rule repeat_modeler:
+    input:
+        "results/subgenomes/{subgenome}.fa"
+    output:
+        multiext("results/repeatmodeler/{subgenome}-families", 
+            ".fa",
+            ".stk",
+        )
+    params:
+        db = "results/repeatmodeler/{subgenome}"
+    log:
+        "logs/repeatmodeler/{subgenome}.log"
+    threads: 12
+    resources:
+        mem_mb=96000
+    shell:
+        "BuildDatabase -name {params.db} {input} ; "
+        "RepeatModeler -database {params.db} -threads {threads} -LTRStruct > {log}"
+
+rule mask_1_trep:
+    input:
+        assembly = "results/subgenomes/{subgenome}.fa", 
+        db = TREP_FASTA
+    output:
+        multiext("results/repeatmasker/1_TREP_out/{subgenome}.fa", 
+            ".masked", 
+            ".out", 
+            ".tbl",
+            ".out.gff" 
+        )
+    params:
+        outdir = "results/repeatmasker/1_TREP_out", 
+        options = "-gff -e ncbi -xsmall"
+    log:
+        "logs/repeatmasker/1_trepmask_{subgenome}.log"
+    threads: 12
+    shell:
+        "RepeatMasker -pa {threads} -dir {params.outdir} {params.options} "
+        "-lib {input.db} {input.assembly} | tee {log}"
+
+rule mask_2_rmodeled:
+    input:
+        assembly = "results/repeatmasker/1_TREP_out/{subgenome}.fa.masked", 
+        db = "results/repeatmodeler/{subgenome}-families.fa"
+    output:
+        multiext("results/repeatmasker/2_RepeatModeler_out/{subgenome}.fa.masked", 
+            ".masked", 
+            ".out", 
+            ".tbl",
+            ".out.gff" 
+        )
+    params:
+        outdir = "results/repeatmasker/2_RepeatModeler_out", 
+        options = "-gff -e ncbi -nolow -xsmall"
+    log:
+        "logs/repeatmasker/2_rmodelermask_{subgenome}.log"
+    threads: 12
+    shell:
+        "RepeatMasker -pa {threads} -dir {params.outdir} {params.options} "
+        "-lib {input.db} {input.assembly} | tee {log}"
+
+rule merge_masked_fasta:
+    input:
+        expand("results/repeatmasker/2_RepeatModeler_out/{subgenome}.fa.masked.masked", subgenome=SUBGENOMES)
+    output:
+        expand("results/{genotype}.masked.fasta", genotype = GENOTYPE)
+    shell:
+        "cat {input} > {output}"
+
+rule merge_te_gff:
+    input:
+        expand("results/repeatmasker/1_TREP_out/{subgenome}.fa.out.gff", subgenome=SUBGENOMES), 
+        expand("results/repeatmasker/2_RepeatModeler_out/{subgenome}.fa.masked.out.gff", subgenome=SUBGENOMES)
+    output:
+        expand("results/{genotype}.te.gff", genotype = GENOTYPE)
+    shell:
+        "cat {input} > {output}"
+
